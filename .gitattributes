@@ -1,0 +1,13 @@
+# Normalize detected text files and check them out using LF.
+# Note that LF is tolerable on modern `pwsh` across Mac and Windows.
+* text=auto eol=lf
+
+# Don't touch these line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.svg text

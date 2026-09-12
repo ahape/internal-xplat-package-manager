@@ -1,0 +1,46 @@
+# .NET outputs and artifacts
+bin/
+obj/
+publish/
+nupkg/
+
+# Node modules
+node_modules/
+
+# Editor directories
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+coverage/
+
+# Temporary files
+*.tmp
+*.log
+.cache/
+
+# Plugin cache (if testing locally)
+.plugin-cache/
+
+# Arbitrary per-user safe haven
+.local/
+.worktrees/
+
+# Claude Code
+.claude/*.local.*
+.claude/worktrees/
+# See https://code.claude.com/docs/en/memory#how-claude-md-files-load
+CLAUDE.local.md
+# Local Gemini CLI settings
+.gemini/
+# Local Codex settings
+.codex/
+# Local OpenCode settings
+opencode.json
+# Common folders for various agentic tools
+.agents/
+.ai/
