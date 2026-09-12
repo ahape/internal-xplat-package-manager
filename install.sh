@@ -285,18 +285,22 @@ print_next_steps() {
   printf '%s\n' ''
 }
 
-log_info "Starting Unix bootstrap"
-uname_s="$(uname -s)"
-log_info "Detected OS: $uname_s ($(uname -m))"
-case "$uname_s" in
-  Darwin) install_macos ;;
-  Linux) install_linux ;;
-  *)
-    log_err 'This script supports macOS (brew) and Debian/Ubuntu Linux (apt) only.'
-    exit 1
-    ;;
-esac
+# Brace group is parsed in full before it runs, so `curl | bash` cannot
+# have apt/sudo/brew consume the rest of this file from stdin.
+{
+  log_info "Starting Unix bootstrap"
+  uname_s="$(uname -s)"
+  log_info "Detected OS: $uname_s ($(uname -m))"
+  case "$uname_s" in
+    Darwin) install_macos ;;
+    Linux) install_linux ;;
+    *)
+      log_err 'This script supports macOS (brew) and Debian/Ubuntu Linux (apt) only.'
+      exit 1
+      ;;
+  esac
 
-check_path
-print_next_steps
-log_info "Unix bootstrap finished"
+  check_path
+  print_next_steps
+  log_info "Unix bootstrap finished"
+}

@@ -4,10 +4,14 @@ Install the toolchain this repo expects. Use the entrypoint for your OS.
 
 ## Windows
 
-`install.ps1` runs under native Windows PowerShell 5.1 (`powershell.exe`). pwsh is not required to start the install.
+`install.ps1` runs under native Windows PowerShell 5.1 (`powershell.exe`). pwsh is not required to start the install. It does not use `$PSScriptRoot` or other on-disk script paths, so a remote one-liner works:
 
-```bat
+```powershell
+# Local file
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+
+# One-shot (in-memory; execution policy does not apply)
+iwr -useb https://raw.githubusercontent.com/ahape/internal-xplat-package-manager/HEAD/install.ps1 | iex
 ```
 
 `install.cmd` is the cmd.exe entrypoint. It bootstraps Chocolatey (via native Windows PowerShell), then installs the same packages including PowerShell LTS.
@@ -21,8 +25,12 @@ Windows installs **fnm** (Fast Node Manager) via Chocolatey. It does not configu
 ## Linux and macOS
 
 ```sh
+# Local file
 chmod +x ./install.sh
 ./install.sh
+
+# One-shot (pipe-safe; the script is parsed before apt/brew run)
+curl -fsSL https://raw.githubusercontent.com/ahape/internal-xplat-package-manager/HEAD/install.sh | bash
 ```
 
 - Debian/Ubuntu: apt, plus Microsoft/dotnet installers where the distro archive does not ship the tool.
