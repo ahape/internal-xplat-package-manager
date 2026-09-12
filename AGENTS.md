@@ -4,7 +4,9 @@ Cross-platform bootstrap for the toolchain this package manager expects:
 jq, ripgrep, GitHub CLI, Azure CLI, .NET SDK, Node (nvm on Unix; fnm is
 installed but not configured on Windows), and PowerShell LTS. Unix uses a
 shell script (Homebrew on macOS, apt on Debian/Ubuntu). Windows uses cmd
-or native Windows PowerShell with Chocolatey.
+or native Windows PowerShell with Chocolatey. Windows Node/npm setup is a
+separate configure-fnm.ps1 step that removes shadowing Node installs and
+wires fnm.
 
 ## Style
 

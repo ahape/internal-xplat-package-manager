@@ -106,9 +106,7 @@ echo.
 echo   az login
 echo   gh auth login
 echo.
-echo   Configure fnm later (not done by this script), then:
-echo     fnm env --use-on-cd
-echo     fnm install --lts
+echo   Configure Node later with configure-fnm.ps1 (not done by this script).
 echo.
 echo   Open a new shell if any required tool is missing from PATH.
 echo.
