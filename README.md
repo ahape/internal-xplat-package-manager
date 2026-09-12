@@ -45,7 +45,7 @@ chmod +x ./install.sh
 
 A new shell is often required before every binary is on PATH. Linux also writes `DOTNET_ROOT` to `~/.profile` when the SDK was placed in `~/.dotnet`.
 
-The scripts are safe to re-run: package managers skip or no-op when a tool is already present, and profile/hook writes are guarded so they do not accumulate.
+The scripts are safe to re-run: package managers skip or no-op when a tool is already present, and profile/hook writes are guarded so they do not accumulate. Each entrypoint prints `[INFO]` lines for every major step, including skips.
 
 ## After install
 
