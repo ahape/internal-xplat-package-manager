@@ -16,9 +16,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 install.cmd
 ```
 
-Windows installs Node through **fnm** (Fast Node Manager), not a direct `nodejs-lts` Chocolatey package. After `choco install fnm`, the scripts run `fnm install --lts` and add the official `fnm env --use-on-cd` hook to Windows PowerShell 5.1 and pwsh profiles. `install.cmd` also evaluates `fnm env` in the current session so `node`/`npm` are on PATH for the post-install check.
-
-New cmd.exe windows do not load PowerShell profiles. To get the same hook in cmd, add the [fnm WinCMD snippet](https://github.com/Schniz/fnm#windows-command-prompt-aka-batch-aka-wincmd) to your cmd startup script.
+Windows installs **fnm** (Fast Node Manager) via Chocolatey. It does not configure fnm yet: no `fnm env` hook, no default version, and no Node LTS install. `node`/`npm` stay off PATH until you set fnm up yourself (see [fnm shell setup](https://github.com/Schniz/fnm#shell-setup)), then `fnm install --lts`.
 
 ## Linux and macOS
 
@@ -40,7 +38,7 @@ chmod +x ./install.sh
 | GitHub CLI | gh | gh | gh |
 | Azure CLI | azure-cli | InstallAzureCLIDeb | azure-cli |
 | .NET SDK (LTS) | dotnet-sdk | dotnet-install.sh | dotnet-sdk cask |
-| Node / npm | fnm `--lts` | nvm `--lts` | nvm `--lts` |
+| Node / npm | fnm (binary only; configure later) | nvm `--lts` | nvm `--lts` |
 | PowerShell LTS | powershell-core | packages.microsoft.com / GitHub LTS .deb | powershell cask |
 
 A new shell is often required before every binary is on PATH. Linux also writes `DOTNET_ROOT` to `~/.profile` when the SDK was placed in `~/.dotnet`.
@@ -53,5 +51,7 @@ The scripts are safe to re-run: package managers skip or no-op when a tool is al
 az login
 gh auth login
 ```
+
+On Windows, configure fnm in a later step before you need Node. Unix `install.sh` still installs Node LTS through nvm during bootstrap.
 
 Then continue with this repo from a shell that can see the tools.

@@ -1,10 +1,10 @@
 ## What this repo is
 
 Cross-platform bootstrap for the toolchain this package manager expects:
-jq, ripgrep, GitHub CLI, Azure CLI, .NET SDK, Node (nvm on Unix, fnm on
-Windows), and PowerShell LTS. Unix uses a shell script (Homebrew on
-macOS, apt on Debian/Ubuntu). Windows uses cmd or native Windows PowerShell
-with Chocolatey.
+jq, ripgrep, GitHub CLI, Azure CLI, .NET SDK, Node (nvm on Unix; fnm is
+installed but not configured on Windows), and PowerShell LTS. Unix uses a
+shell script (Homebrew on macOS, apt on Debian/Ubuntu). Windows uses cmd
+or native Windows PowerShell with Chocolatey.
 
 ## Style
 

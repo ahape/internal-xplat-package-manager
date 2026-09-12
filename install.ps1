@@ -1,9 +1,7 @@
 #Requires -Version 5.1
 # Windows bootstrap. Runs under native Windows PowerShell 5.1 (powershell.exe);
 # pwsh is not required to execute this script.
-param(
-  [switch]$WriteFnmProfiles
-)
+# fnm is installed via Chocolatey; Node/npm setup through fnm is a later step.
 
 $ErrorActionPreference = 'Stop'
 
@@ -72,72 +70,6 @@ function Assert-NativeExitCode {
   }
 }
 
-function Add-UniqueFileLine {
-  param(
-    [Parameter(Mandatory = $true)][string]$Path,
-    [Parameter(Mandatory = $true)][string]$Needle,
-    [Parameter(Mandatory = $true)][string]$Line
-  )
-  $dir = Split-Path $Path -Parent
-  if ($dir -and -not (Test-Path $dir)) {
-    Write-Info "Creating profile directory $dir"
-    New-Item -ItemType Directory -Path $dir -Force | Out-Null
-  }
-  if (-not (Test-Path $Path)) {
-    Write-Info "Creating profile file $Path"
-    New-Item -ItemType File -Path $Path -Force | Out-Null
-  }
-  if (-not (Select-String -Path $Path -SimpleMatch $Needle -Quiet)) {
-    Write-Info "Writing fnm hook to $Path"
-    Add-Content -Path $Path -Value ([Environment]::NewLine + $Line)
-  }
-  else {
-    Write-Info "fnm hook already present in $Path - skipping"
-  }
-}
-
-function Write-FnmPowerShellProfiles {
-  # fnm only puts node/npm on PATH after `fnm env` is evaluated in the shell.
-  Write-Info "Updating Windows PowerShell and pwsh profiles with fnm env hook"
-  $hook = 'fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression'
-  $profilePaths = @()
-  if ($PROFILE) {
-    $profilePaths += $PROFILE
-  }
-  $docs = [Environment]::GetFolderPath('MyDocuments')
-  if ($docs) {
-    $profilePaths += (Join-Path $docs 'WindowsPowerShell\Microsoft.PowerShell_profile.ps1')
-    $profilePaths += (Join-Path $docs 'PowerShell\Microsoft.PowerShell_profile.ps1')
-  }
-  $profilePaths | Where-Object { $_ } | Select-Object -Unique | ForEach-Object {
-    Add-UniqueFileLine -Path $_ -Needle 'fnm env' -Line $hook
-  }
-}
-
-function Install-FnmNodeLts {
-  Write-FnmPowerShellProfiles
-  Write-Info "Evaluating fnm env for this PowerShell session"
-  Invoke-Expression ((fnm env --use-on-cd --shell powershell | Out-String))
-  if (Test-Command 'node') {
-    Write-Info "node already on PATH - ensuring Node LTS via fnm (no-op if present)"
-  }
-  else {
-    Write-Info "Installing Node LTS via fnm"
-  }
-  fnm install --lts --use --progress never
-  Assert-NativeExitCode -CommandName 'fnm install --lts'
-  Write-Info "Setting fnm default to LTS"
-  fnm default lts-latest
-  if ($LASTEXITCODE -ne 0) {
-    Write-Info "fnm default lts-latest failed - using fnm current"
-    $current = (fnm current | Out-String).Trim()
-    if ($current) {
-      fnm default $current
-      Assert-NativeExitCode -CommandName 'fnm default'
-    }
-  }
-}
-
 function Install-ChocolateyPackages {
   $queue = @(
     @{ Command = 'jq'; Package = 'jq' },
@@ -164,18 +96,11 @@ function Install-ChocolateyPackages {
   }
   Write-Info "Installing Chocolatey packages: $($toInstall -join ', ')"
   # powershell-core is the Chocolatey id for pwsh; current stable is the LTS train.
-  # Node comes from fnm (nvm-like), not the nodejs-lts Chocolatey package.
+  # fnm is installed only; Node/npm via fnm is a later manual step.
   # Native command failures do not honor $ErrorActionPreference on Windows PowerShell 5.1.
   & choco install -y @toInstall
   Assert-NativeExitCode -CommandName 'choco install'
   Write-Info "Chocolatey package install finished"
-}
-
-if ($WriteFnmProfiles) {
-  Write-Info "WriteFnmProfiles mode - updating PowerShell profiles only"
-  Write-FnmPowerShellProfiles
-  Write-Info "Done writing fnm profile hooks"
-  return
 }
 
 Write-Info "Starting Windows bootstrap (Windows PowerShell $($PSVersionTable.PSVersion))"
@@ -203,12 +128,11 @@ Import-ChocolateyEnvironment
 if (-not (Test-Command 'fnm')) {
   throw 'fnm is still not on PATH. Open a new PowerShell window and re-run install.ps1.'
 }
-Write-Info "fnm is on PATH"
-Install-FnmNodeLts
+Write-Info "fnm is on PATH - not configuring it (no Node install, no profile hooks)"
 
 Write-Info "Verifying tools on PATH"
 $missing = @()
-foreach ($name in @('jq', 'rg', 'gh', 'az', 'dotnet', 'fnm', 'node', 'npm', 'pwsh')) {
+foreach ($name in @('jq', 'rg', 'gh', 'az', 'dotnet', 'fnm', 'pwsh')) {
   if (Test-Command $name) {
     Write-Info "$name - ok"
   }
@@ -217,11 +141,19 @@ foreach ($name in @('jq', 'rg', 'gh', 'az', 'dotnet', 'fnm', 'node', 'npm', 'pws
     $missing += $name
   }
 }
+foreach ($name in @('node', 'npm')) {
+  if (Test-Command $name) {
+    Write-Info "$name - ok (already present; this script does not configure fnm)"
+  }
+  else {
+    Write-Info "$name - not configured yet (fnm is installed; set it up later)"
+  }
+}
 if ($missing) {
   Write-WarnInfo "Not on PATH yet (a new shell often fixes this): $($missing -join ', ')"
 }
 else {
-  Write-Info "All tools installed and on PATH."
+  Write-Info "Required tools installed and on PATH. Node/npm come after you configure fnm."
 }
 
 Write-Info "Next steps on a fresh system:"
@@ -229,6 +161,10 @@ Write-Host ''
 Write-Host '  az login'
 Write-Host '  gh auth login'
 Write-Host ''
-Write-Host '  Open a new shell if any tool is missing from PATH, then continue with this repo.'
+Write-Host '  Configure fnm later (not done by this script), then:'
+Write-Host '    fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression'
+Write-Host '    fnm install --lts'
+Write-Host ''
+Write-Host '  Open a new shell if any required tool is missing from PATH.'
 Write-Host ''
 Write-Info "Windows PowerShell bootstrap finished"

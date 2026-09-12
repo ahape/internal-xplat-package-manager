@@ -38,7 +38,7 @@ if errorlevel 1 (
 )
 
 rem powershell-core is the Chocolatey id for pwsh; current stable is the LTS train.
-rem Node comes from fnm (nvm-like), not the nodejs-lts Chocolatey package.
+rem fnm is installed here; Node/npm via fnm is a later manual step.
 set "CHOCO_PKGS="
 call :queue_choco jq jq
 call :queue_choco rg ripgrep
@@ -68,46 +68,11 @@ if errorlevel 1 (
   call :log_err "fnm is still not on PATH. Open a new Command Prompt and re-run install.cmd."
   exit /b 1
 )
-call :log_info "fnm is on PATH"
-
-rem fnm only puts node/npm on PATH after `fnm env` is evaluated in the shell.
-if not defined FNM_AUTORUN_GUARD (
-  call :log_info "Evaluating fnm env for this cmd session"
-  set "FNM_AUTORUN_GUARD=AutorunGuard"
-  FOR /f "tokens=*" %%z IN ('fnm env --use-on-cd') DO CALL %%z
-) else (
-  call :log_info "FNM_AUTORUN_GUARD already set - skipping fnm env eval"
-)
-
-where node >nul 2>&1
-if errorlevel 1 (
-  call :log_info "Installing Node LTS via fnm"
-) else (
-  call :log_info "node already on PATH - ensuring Node LTS via fnm (no-op if present)"
-)
-fnm install --lts --use --progress never
-if errorlevel 1 (
-  call :log_err "fnm install --lts failed."
-  exit /b 1
-)
-call :log_info "Setting fnm default to LTS"
-fnm default lts-latest
-if errorlevel 1 (
-  call :log_info "fnm default lts-latest failed - using fnm current"
-  for /f "usebackq delims=" %%v in (`fnm current`) do fnm default %%v
-)
-
-rem Persist the official fnm hook for Windows PowerShell 5.1 and pwsh.
-call :log_info "Writing fnm hooks to PowerShell profiles"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" -WriteFnmProfiles
-if errorlevel 1 (
-  call :log_err "Failed to write fnm hooks to PowerShell profiles."
-  exit /b 1
-)
+call :log_info "fnm is on PATH - not configuring it (no Node install, no profile hooks)"
 
 call :log_info "Verifying tools on PATH"
 set "MISSING="
-for %%C in (jq rg gh az dotnet fnm node npm pwsh) do (
+for %%C in (jq rg gh az dotnet fnm pwsh) do (
   where %%C >nul 2>&1
   if errorlevel 1 (
     call :log_info "%%C - missing"
@@ -117,10 +82,23 @@ for %%C in (jq rg gh az dotnet fnm node npm pwsh) do (
   )
 )
 
+where node >nul 2>&1
+if errorlevel 1 (
+  call :log_info "node - not configured yet (fnm is installed; set it up later)"
+) else (
+  call :log_info "node - ok (already present; this script does not configure fnm)"
+)
+where npm >nul 2>&1
+if errorlevel 1 (
+  call :log_info "npm - not configured yet (fnm is installed; set it up later)"
+) else (
+  call :log_info "npm - ok (already present; this script does not configure fnm)"
+)
+
 if defined MISSING (
   call :log_warn "Not on PATH yet (a new shell often fixes this):!MISSING!"
 ) else (
-  call :log_info "All tools installed and on PATH."
+  call :log_info "Required tools installed and on PATH. Node/npm come after you configure fnm."
 )
 
 call :log_info "Next steps on a fresh system:"
@@ -128,7 +106,11 @@ echo.
 echo   az login
 echo   gh auth login
 echo.
-echo   Open a new shell if any tool is missing from PATH, then continue with this repo.
+echo   Configure fnm later (not done by this script), then:
+echo     fnm env --use-on-cd
+echo     fnm install --lts
+echo.
+echo   Open a new shell if any required tool is missing from PATH.
 echo.
 
 call :log_info "Windows cmd bootstrap finished"
