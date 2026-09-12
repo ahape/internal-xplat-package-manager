@@ -48,6 +48,9 @@ ensure_brew() {
 }
 
 install_pwsh_lts_macos() {
+  if have pwsh; then
+    return 0
+  fi
   # Cask tracks current stable pwsh, which is the active LTS train.
   # The powershell/tap powershell-lts formula can lag on the previous LTS.
   brew install --cask powershell
@@ -123,8 +126,11 @@ install_nvm_node_lts() {
 install_macos() {
   ensure_brew
   brew update
+  # brew install is skip-if-present for already-installed formulae/casks.
   brew install jq ripgrep gh azure-cli
-  brew install --cask dotnet-sdk
+  if ! have dotnet; then
+    brew install --cask dotnet-sdk
+  fi
   install_pwsh_lts_macos
   install_nvm_node_lts
 }
@@ -136,12 +142,19 @@ install_linux() {
   fi
   sudo apt-get update
   sudo apt-get install -y curl ca-certificates jq ripgrep gh
-  curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-  curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
-  export DOTNET_ROOT="$HOME/.dotnet"
-  export PATH="$DOTNET_ROOT:$PATH"
-  if ! grep -F -q 'DOTNET_ROOT' "$HOME/.profile" 2>/dev/null; then
-    printf '\nexport DOTNET_ROOT="$HOME/.dotnet"\nexport PATH="$DOTNET_ROOT:$PATH"\n' >> "$HOME/.profile"
+  # InstallAzureCLIDeb rewrites Microsoft apt keys/sources on every run.
+  if ! have az; then
+    curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+  fi
+  if ! have dotnet; then
+    curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
+  fi
+  export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
+  if [ -x "$HOME/.dotnet/dotnet" ]; then
+    export PATH="$HOME/.dotnet:$PATH"
+    if ! grep -F -q 'DOTNET_ROOT' "$HOME/.profile" 2>/dev/null; then
+      printf '\nexport DOTNET_ROOT="$HOME/.dotnet"\nexport PATH="$DOTNET_ROOT:$PATH"\n' >> "$HOME/.profile"
+    fi
   fi
   install_pwsh_lts_linux
   install_nvm_node_lts

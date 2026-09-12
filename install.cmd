@@ -24,7 +24,8 @@ if errorlevel 1 (
 
 rem RefreshEnv.cmd uses its own setlocal and can drop delayed expansion.
 if exist "%ALLUSERSPROFILE%\chocolatey\bin\" (
-  set "PATH=%ALLUSERSPROFILE%\chocolatey\bin;%PATH%"
+  echo ;%PATH%; | find /I ";%ALLUSERSPROFILE%\chocolatey\bin;" >nul
+  if errorlevel 1 set "PATH=%ALLUSERSPROFILE%\chocolatey\bin;%PATH%"
 )
 
 where choco >nul 2>&1
@@ -43,7 +44,8 @@ if not "%CHOCO_EXIT%"=="0" if not "%CHOCO_EXIT%"=="3010" (
 )
 
 if exist "%ALLUSERSPROFILE%\chocolatey\bin\" (
-  set "PATH=%ALLUSERSPROFILE%\chocolatey\bin;%PATH%"
+  echo ;%PATH%; | find /I ";%ALLUSERSPROFILE%\chocolatey\bin;" >nul
+  if errorlevel 1 set "PATH=%ALLUSERSPROFILE%\chocolatey\bin;%PATH%"
 )
 
 where fnm >nul 2>&1
