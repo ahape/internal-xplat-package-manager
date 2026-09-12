@@ -1,6 +1,10 @@
 #Requires -Version 5.1
 # Windows bootstrap. Runs under native Windows PowerShell 5.1 (powershell.exe);
 # pwsh is not required to execute this script.
+param(
+  [switch]$WriteFnmProfiles
+)
+
 $ErrorActionPreference = 'Stop'
 
 # TLS 1.2 is off by default on some Windows PowerShell 5.1 hosts.
@@ -50,6 +54,61 @@ function Assert-NativeExitCode {
   }
 }
 
+function Add-UniqueFileLine {
+  param(
+    [Parameter(Mandatory = $true)][string]$Path,
+    [Parameter(Mandatory = $true)][string]$Needle,
+    [Parameter(Mandatory = $true)][string]$Line
+  )
+  $dir = Split-Path $Path -Parent
+  if ($dir -and -not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+  }
+  if (-not (Test-Path $Path)) {
+    New-Item -ItemType File -Path $Path -Force | Out-Null
+  }
+  if (-not (Select-String -Path $Path -SimpleMatch $Needle -Quiet)) {
+    Add-Content -Path $Path -Value ([Environment]::NewLine + $Line)
+  }
+}
+
+function Write-FnmPowerShellProfiles {
+  # fnm only puts node/npm on PATH after `fnm env` is evaluated in the shell.
+  $hook = 'fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression'
+  $profilePaths = @()
+  if ($PROFILE) {
+    $profilePaths += $PROFILE
+  }
+  $docs = [Environment]::GetFolderPath('MyDocuments')
+  if ($docs) {
+    $profilePaths += (Join-Path $docs 'WindowsPowerShell\Microsoft.PowerShell_profile.ps1')
+    $profilePaths += (Join-Path $docs 'PowerShell\Microsoft.PowerShell_profile.ps1')
+  }
+  $profilePaths | Where-Object { $_ } | Select-Object -Unique | ForEach-Object {
+    Add-UniqueFileLine -Path $_ -Needle 'fnm env' -Line $hook
+  }
+}
+
+function Install-FnmNodeLts {
+  Write-FnmPowerShellProfiles
+  Invoke-Expression ((fnm env --use-on-cd --shell powershell | Out-String))
+  fnm install --lts --use --progress never
+  Assert-NativeExitCode -CommandName 'fnm install --lts'
+  fnm default lts-latest
+  if ($LASTEXITCODE -ne 0) {
+    $current = (fnm current | Out-String).Trim()
+    if ($current) {
+      fnm default $current
+      Assert-NativeExitCode -CommandName 'fnm default'
+    }
+  }
+}
+
+if ($WriteFnmProfiles) {
+  Write-FnmPowerShellProfiles
+  return
+}
+
 if (-not (Test-Command 'choco')) {
   Set-ExecutionPolicy Bypass -Scope Process -Force
   Invoke-Expression ((New-Object Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
@@ -61,12 +120,18 @@ if (-not (Test-Command 'choco')) {
 }
 
 # powershell-core is the Chocolatey id for pwsh; current stable is the LTS train.
+# Node comes from fnm (nvm-like), not the nodejs-lts Chocolatey package.
 # Native command failures do not honor $ErrorActionPreference on Windows PowerShell 5.1.
-choco install -y jq ripgrep gh azure-cli dotnet-sdk nodejs-lts powershell-core
+choco install -y jq ripgrep gh azure-cli dotnet-sdk powershell-core fnm
 Assert-NativeExitCode -CommandName 'choco install'
 Import-ChocolateyEnvironment
 
-$missing = @('jq', 'rg', 'gh', 'az', 'dotnet', 'node', 'npm', 'pwsh') | Where-Object { -not (Test-Command $_) }
+if (-not (Test-Command 'fnm')) {
+  throw 'fnm is still not on PATH. Open a new PowerShell window and re-run install.ps1.'
+}
+Install-FnmNodeLts
+
+$missing = @('jq', 'rg', 'gh', 'az', 'dotnet', 'fnm', 'node', 'npm', 'pwsh') | Where-Object { -not (Test-Command $_) }
 if ($missing) {
   Write-Warning "Not on PATH yet (a new shell often fixes this): $($missing -join ', ')"
 }
